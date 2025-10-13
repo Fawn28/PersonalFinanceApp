@@ -1,0 +1,220 @@
+﻿@page "/budget"
+@attribute [StreamRendering]
+
+<PageTitle>Budget</PageTitle>
+
+<h2>@timePeriod Budget</h2>
+<div class="time-period-tabs">
+    <button class="tab-button @(timePeriod == "Weekly" ? "active" : "")" 
+            @onclick='() => SetTimePeriod("Weekly")'>
+        Weekly
+    </button>
+    <button class="tab-button @(timePeriod == "Monthly" ? "active" : "")" 
+            @onclick='() => SetTimePeriod("Monthly")'>
+        Monthly
+    </button>
+    <button class="tab-button @(timePeriod == "Yearly" ? "active" : "")" 
+            @onclick='() => SetTimePeriod("Yearly")'>
+        Yearly
+    </button>
+</div>
+
+
+<div class="budget-list">
+    @foreach (var category in monthlyBudgets)
+    {
+        decimal spent = GetSpentAmount(category.Key);
+        decimal budget = category.Value;
+        int percentage = budget > 0 ? (int)((spent / budget) * 100) : 0;
+        
+        <div class="budget-item">
+            <div class="budget-header">
+                <h3>@GetCategoryIcon(category.Key) @category.Key</h3>
+                <span class="budget-amount">$@spent / $@budget (@percentage%)</span>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill @(percentage > 100 ? "over-budget" : "")" 
+                     style="width: @Math.Min(percentage, 100)%">
+                </div>
+            </div>
+            
+            <div class="budget-input">
+                <label>Set Budget: $</label>
+                <input type="number" value="@budget" 
+                       @onchange="@((e) => UpdateBudget(category.Key, decimal.Parse(e.Value.ToString())))" 
+                       /* Lambda expression, if the user changed the value,will catch it and update the budget */
+                       step="1" min="0" />
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string timePeriod = "Monthly"; 
+     @* Weekly, Monthly, Yearly *@
+    
+     @* Budget amounts for each category (monthly) *@
+    private Dictionary<string, decimal> monthlyBudgets = new()
+    {
+        { "Food", 500 },
+        { "Transport", 200 },
+        { "Shopping", 300 },
+        { "Entertainment", 100 },
+        { "Bills", 400 },
+        { "Healthcare", 150 },
+        { "Other", 100 }
+    };
+    
+    private void SetTimePeriod(string period)
+    {
+        timePeriod = period;
+    }
+
+    private decimal GetSpentAmount(string category)
+{
+    // For now, return sample data
+    // Later we'll connect to real transactions
+    return category switch
+    //If category is "Food", return 450, switch expression  
+    {
+        "Food" => 450,
+        "Transport" => 180,
+        "Shopping" => 250,
+        "Entertainment" => 120,
+        "Bills" => 400,
+        "Healthcare" => 80,
+        "Other" => 50,
+        _ => 0
+        // If none match, return 0 (default) 
+    };
+}
+
+private string GetCategoryIcon(string category)
+{
+    return category switch
+    {
+        "Food" => "🍔",
+        "Transport" => "🚗",
+        "Shopping" => "👕",
+        "Entertainment" => "🎬",
+        "Bills" => "💡",
+        "Healthcare" => "💊",
+        "Other" => "💰",
+        _ => "📁"
+    };
+}
+
+private void UpdateBudget(string category, decimal newBudget)
+{
+    monthlyBudgets[category] = newBudget;
+}
+}
+
+<style>
+ 
+
+    h2 {
+        font-size: 28px;
+        color: #8E6F9D;
+         margin-bottom: 30px;
+    }
+    .time-period-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .tab-button {
+        padding: 12px 30px;
+        border: 2px solid #A888B5;
+        background: white;
+        color: #A888B5;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .tab-button.active {
+        background: #A888B5;
+        color: white;
+    }
+    
+    .budget-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;  
+        gap: 20px;
+        margin-top: 30px;
+    }
+    
+    .budget-item {
+        background: white;
+        padding: 20px; 
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .budget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .budget-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 16px;
+    }
+    
+    .budget-amount {
+        font-weight: 600;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #f0f0f0;
+        border-radius: 15px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #A888B5, #8E6F9D);
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 10px;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .progress-fill.over-budget {
+        background: linear-gradient(90deg, #FF6B6B, #FF5252);
+    }
+    
+    .budget-input {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .budget-input label {
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .budget-input input {
+        width: 150px;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+</style>

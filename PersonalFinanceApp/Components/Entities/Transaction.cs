@@ -1,4 +1,4 @@
-namespace BlazorApp1.Components.Entities;
+namespace PersonalFinanceApp.Components.Entities;
 
 public abstract class Transaction
 {

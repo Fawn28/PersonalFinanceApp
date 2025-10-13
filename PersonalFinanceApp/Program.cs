@@ -1,6 +1,6 @@
-using BlazorApp1.Components.Data;
-using BlazorApp1.Components.Models;
-using PersonalFinanceApp.Components;
+using PersonalFinanceApp.Components.Data;
+using PersonalFinanceApp.Components.Models;
+using PersonalFinanceApp.Components.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +32,7 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapRazorComponents<App>()
+app.MapRazorComponents<PersonalFinanceApp.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();

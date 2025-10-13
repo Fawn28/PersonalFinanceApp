@@ -1,0 +1,280 @@
+﻿@page "/transactions"
+@rendermode InteractiveServer
+
+<PageTitle>Transactions</PageTitle>
+
+
+
+<div class="transaction-type-tabs">
+    <button class="tab-button @(isExpense ? "active" : "")" @onclick="() => SetType(true)">
+    <!-- condition ? if_true : if_false -->
+        Expenses
+    </button>
+    <button class="tab-button @(isExpense ? "" : "active")" @onclick="() => SetType(false)">
+    <!-- anonymous function: When clicked, run SetType(true); onclick predefined directive;-->
+        Income
+    </button>
+</div>
+
+<div class="transaction-container">
+    <div class="transaction-form">
+        <h3>Add @(isExpense ? "Expense" : "Income")</h3>
+        <!-- would show Add Expense or Income-->
+        
+        <label>Date:</label>
+        <input type="date" @bind="selectedDate" />
+        @* type = date for calender picker *@
+        <label>Category:</label>
+            <select @bind="category" class="form-select">
+
+                <option value="">-- Select Category --</option>
+
+                @if (isExpense)
+
+                {
+
+                    <option value="Food">🍔 Food & Dining</option>
+
+                    <option value="Transport">🚗 Transportation</option>
+
+                    <option value="Shopping">👕 Shopping</option>
+
+                    <option value="Entertainment">🎬 Entertainment</option>
+
+                    <option value="Bills">💡 Bills & Utilities</option>
+
+                    <option value="Healthcare">💊 Healthcare</option>
+
+                    <option value="Other">💰 Other</option>
+
+                }
+
+                else
+
+                {
+                    <option value="Salary">💼 Salary</option>
+
+                    <option value="Freelance">💸 Freelance</option>
+
+                    <option value="Investment">📈 Investment</option>
+
+                    <option value="Gift">🎁 Gift</option>
+
+                    <option value="Other">💰 Other</option>
+
+                }
+            </select>
+
+            <label>Description (optional):</label>
+            <input type="text" @bind="description" placeholder="Add details..." />
+        
+        <label>Amount:</label>
+        <input type="number" @bind="amount" placeholder="0.00" step="0.01" />
+        
+        <button class="btn-add" @onclick="AddTransaction">Add Transaction</button>
+    </div>
+
+    <div class="transaction-list">
+        <h3>Recent Transactions</h3>
+        @if (transactions.Count == 0)
+        {
+            <p class="empty-message">No transactions yet. Add your first one!</p>
+        }
+        else
+        {
+            @foreach (var trans in transactions)
+            {
+                <div class="transaction-item @(trans.IsExpense ? "expense" : "income")">
+                    <div class="trans-info">
+                    <strong>@trans.Category</strong>
+                    <small>@trans.Date.ToShortDateString()</small>
+                    </div>
+
+                    <div class ="trans-amount">@(trans.IsExpense? "-": "+")$@trans.Amount</div>
+                </div>
+            }
+        }
+            
+    </div>
+</div>
+
+@code {
+
+     public class Transaction{
+        public DateTime Date{get; set;}
+        public string Category { get; set; } = "";
+        public string Description{get; set;}="";
+
+        public decimal Amount{get; set;}
+        public bool IsExpense{get; set;}
+    }
+    
+
+    private DateTime selectedDate = DateTime.Today;
+    private string category = "";
+
+    private string description = "";
+
+    private decimal amount = 0;
+
+    private bool isExpense = true;
+
+    private List<Transaction> transactions = new();
+
+    private void SetType(bool expense){
+        isExpense = expense;
+    }
+
+    private void AddTransaction(){
+        
+        if (string.IsNullOrWhiteSpace(category) || amount <= 0){
+            return;
+        }
+        transactions.Add(new Transaction{
+            Date=selectedDate,
+            Category=category,
+            Description=description,
+            Amount=amount,
+            IsExpense=isExpense
+        });
+        category="";
+        description="";
+        amount=0;
+        selectedDate=DateTime.Today;
+    }
+
+   
+}
+
+<style>
+    .transaction-type-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .tab-button {
+        padding: 12px 30px;
+        border: 2px solid #A888B5;
+        background: white;
+        color: #A888B5;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .tab-button.active {
+        background: #A888B5;
+        color: white;
+    }
+    
+    .transaction-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+    
+    .transaction-form {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-form h3 {
+        color: #A888B5;
+        margin-bottom: 20px;
+    }
+    
+    .transaction-form label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .transaction-form input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    
+    .btn-add {
+        margin-top: 20px;
+        width: 100%;
+        padding: 12px;
+        background: #A888B5;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .btn-add:hover {
+        background: #8E6F9D;
+    }
+    
+    .transaction-list {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-list h3 {
+        color: #A888B5;
+        margin-bottom: 20px;
+    }
+    
+    .empty-message {
+        color: #999;
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        background: #f9f9f9;
+    }
+    
+    .transaction-item.expense {
+        border-left: 4px solid #FF6B6B;
+    }
+    
+    .transaction-item.income {
+        border-left: 4px solid #51CF66;
+    }
+    
+    .trans-info strong {
+        display: block;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .trans-info small {
+        color: #666;
+    }
+    
+    .trans-amount {
+        font-size: 18px;
+        font-weight: bold;
+    }
+    
+    .transaction-item.expense .trans-amount {
+        color: #FF6B6B;
+    }
+    
+    .transaction-item.income .trans-amount {
+        color: #51CF66;
+    }
+</style>

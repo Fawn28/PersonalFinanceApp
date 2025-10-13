@@ -1,7 +1,7 @@
-using BlazorApp1.Components.Data;
-using BlazorApp1.Components.Entities;
+using PersonalFinanceApp.Components.Data;
+using PersonalFinanceApp.Components.Entities;
 
-namespace BlazorApp1.Components.Models;
+namespace PersonalFinanceApp.Components.Models;
 
 public class TransactionService
 {

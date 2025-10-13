@@ -1,6 +1,6 @@
-using BlazorApp1.Components.Entities;
+using PersonalFinanceApp.Components.Entities;
 
-namespace BlazorApp1.Components.Data;
+namespace PersonalFinanceApp.Components.Data;
 
 public class TransactionRepo
 {
