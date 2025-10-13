@@ -1,0 +1,120 @@
+@page "/test"
+@rendermode InteractiveServer
+@using BlazorApp1.Components.Entities
+@using BlazorApp1.Components.Models
+@inject TransactionService TransactionService
+@inject BudgetService BudgetService
+
+<h3>Personal Finance Test Page</h3>
+
+<div class="row">
+    <div class="col-md-6">
+        <h4>Transactions</h4>
+        <button class="btn btn-primary mb-2" @onclick="RunTransactionTest">Add Test Transactions</button>
+
+        <ul class="list-group">
+            @foreach (var transaction in Transactions)
+            {
+                <li class="list-group-item">
+                    @transaction.Date.ToShortDateString() - @transaction.Description - @transaction.Amount
+                </li>
+            }
+        </ul>
+
+        <p class="mt-2"><strong>Balance:</strong> @Balance</p>
+    </div>
+
+    <div class="col-md-6">
+        <h4>Budgets</h4>
+
+        <div class="mb-2">
+            <input placeholder="Budget Name" @bind="NewBudgetName" class="form-control mb-1" />
+            <input type="number" placeholder="Target Amount" @bind="NewBudgetTarget" class="form-control mb-1" />
+            <button class="btn btn-success" @onclick="RunBudgetTest">Add Budget</button>
+        </div>
+
+        <ul class="list-group">
+            @foreach (var budget in Budgets)
+            {
+                <li class="list-group-item">
+                    @budget.Name: @budget.CurrentAmount / @budget.TargetAmount
+                    (@($"{BudgetService.GetProgress(budget):P1}"))
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+<p class="mt-3">@StatusMessage</p>
+
+@code {
+    
+    private List<Transaction> Transactions = new();
+    private decimal Balance;
+
+    
+    private List<Budget> Budgets = new();
+    private string NewBudgetName = "";
+    private decimal NewBudgetTarget;
+    private string StatusMessage = "";
+
+    protected override void OnInitialized()
+    {
+        Transactions = TransactionService.GetAll().ToList();
+        Balance = TransactionService.GetBalance();
+
+        Budgets = BudgetService.GetAll().ToList();
+    }
+
+    private void RunTransactionTest()
+    {
+        TransactionService.AddTransaction(new Expense
+        {
+            Date = DateTime.Now,
+            Amount = 50,
+            Description = "Groceries"
+        });
+
+        TransactionService.AddTransaction(new Income
+        {
+            Date = DateTime.Now,
+            Amount = 2000,
+            Description = "Salary"
+        });
+
+        RefreshData();
+        StatusMessage = "Added 2 test transactions!";
+    }
+
+    private void RunBudgetTest()
+    {
+        if (string.IsNullOrWhiteSpace(NewBudgetName) || NewBudgetTarget <= 0)
+        {
+            StatusMessage = "Enter a valid name and target amount!";
+            return;
+        }
+
+        var budget = new Budget
+        {
+            Name = NewBudgetName,
+            TargetAmount = NewBudgetTarget,
+            StartDate = DateTime.Now,
+            EndDate = DateTime.Now.AddMonths(1)
+        };
+
+        BudgetService.AddBudget(budget);
+        RefreshData();
+        StatusMessage = $"Added budget: {budget.Name}";
+
+        NewBudgetName = "";
+        NewBudgetTarget = 0;
+    }
+
+    private void RefreshData()
+    {
+        Transactions = TransactionService.GetAll().ToList();
+        Balance = TransactionService.GetBalance();
+        Budgets = BudgetService.GetAll().ToList();
+        StateHasChanged();
+    }
+}

@@ -1,3 +1,5 @@
+using BlazorApp1.Components.Data;
+using BlazorApp1.Components.Models;
 using PersonalFinanceApp.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSingleton<TransactionRepo>();
+builder.Services.AddSingleton<TransactionService>();
+
+builder.Services.AddSingleton<BudgetRepo>();
+builder.Services.AddSingleton<BudgetService>();
+
+//builder.Services.AddSingleton<AnalyticsService>();
 
 var app = builder.Build();
 
