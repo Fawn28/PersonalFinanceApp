@@ -1,11 +1,16 @@
 ﻿@page "/"
 @page "/home"
+@rendermode InteractiveServer
+@using PersonalFinanceApp.Components.Entities
+@using PersonalFinanceApp.Components.Models
+@inject TransactionService TransactionService
+@inject BudgetService BudgetService
 
 <PageTitle>Home</PageTitle>
 
 
 <div class="welcome-section">
-    <h2>Welcome back, @userName! </h2>
+    <h2>Welcome back! </h2>
     
 </div>
 
@@ -36,12 +41,30 @@
 
 @code
 {
+    private decimal totalBalance = 0;
+    private decimal monthlySpending = 0;
+    private decimal budgetRemaining = 0;
 
-private string userName = "TestName";  
-
-private decimal totalBalance = 5240.50m;
-private decimal monthlySpending = 1850.00m;
-private decimal budgetRemaining = 1150.00m;
+    protected override void OnInitialized()
+    {
+        // Use service methods
+        totalBalance = TransactionService.GetBalance();
+        monthlySpending = CalculateMonthlySpending();
+        
+        var budgets = BudgetService.GetAll();
+        var totalBudget = budgets.Sum(b => b.TargetAmount);
+        budgetRemaining = totalBudget - monthlySpending;
+    }
+    
+    private decimal CalculateMonthlySpending()
+    {
+        var thisMonth = DateTime.Now.Month;
+        var thisYear = DateTime.Now.Year;
+        
+        return TransactionService.GetExpenses()
+            .Where(e => e.Date.Month == thisMonth && e.Date.Year == thisYear)
+            .Sum(e => e.Amount);
+    }
 }
 
 <style>

@@ -18,9 +18,37 @@ public class BudgetService
     
     public void AddBudget(Budget budget)
     {
-        budget.Id = _budgets.Count + 1;
-        _budgets.Add(budget);
-        _repo.Append(budget);
+        // Check if budget already exists (for updates)
+        var existing = _budgets.FirstOrDefault(b => b.Id == budget.Id);
+        
+        if (existing != null)
+        {
+            // Update existing budget
+            existing.Name = budget.Name;
+            existing.TargetAmount = budget.TargetAmount;
+            existing.CurrentAmount = budget.CurrentAmount;
+            existing.StartDate = budget.StartDate;
+            existing.EndDate = budget.EndDate;
+            _repo.Save(_budgets);
+        }
+        else
+        {
+            // Add new budget
+            budget.Id = _budgets.Any() ? _budgets.Max(b => b.Id) + 1 : 1;
+            _budgets.Add(budget);
+            _repo.Append(budget);
+        }
+    }
+
+        public void DeleteBudget(int budgetId)
+    {
+        var budgetToRemove = _budgets.FirstOrDefault(b => b.Id == budgetId);
+        
+        if (budgetToRemove != null)
+        {
+            _budgets.Remove(budgetToRemove);
+            _repo.Save(_budgets);
+        }
     }
     
     public void UpdateProgress(Transaction transaction)
@@ -44,6 +72,6 @@ public class BudgetService
     }
     
     public decimal GetProgress(Budget budget) =>
-        budget.CurrentAmount / budget.TargetAmount;
+        budget.TargetAmount > 0 ? budget.CurrentAmount / budget.TargetAmount : 0;
 }
     

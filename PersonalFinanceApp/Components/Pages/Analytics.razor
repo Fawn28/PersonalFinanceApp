@@ -1,4 +1,9 @@
 @page "/analytics"
+@rendermode InteractiveServer
+@using PersonalFinanceApp.Components.Entities
+@using PersonalFinanceApp.Components.Models
+@inject TransactionService TransactionService
+@inject BudgetService BudgetService
 
 <PageTitle>Analytics</PageTitle>
 
@@ -15,57 +20,128 @@
     </button>
 </div>
 
-
-
 <div class="analytics-container">
-    <!-- CSS Pie Chart -->
+    <!-- Pie Chart Card -->
     <div class="chart-card">
+        <h3>Spending by Category</h3>
         
-        <div class="pie-chart-container">
-            <div class="css-pie-chart" style="@GetPieChartStyle()"></div>
-            <div class="pie-center">
-                <div class="pie-total">${totalSpending:F0}</div>
-                <div class="pie-label">Total</div>
-            </div>
-        </div>
-        <div class="pie-legend">
-            @foreach (var category in GetSortedCategories())
-            {
-                decimal percentage = (category.Value / totalSpending) * 100;
-                <div class="legend-item">
-                    <span class="legend-color" style="background: @GetCategoryColor(category.Key)"></span>
-                    <span class="legend-text">@GetCategoryIcon(category.Key) @category.Key</span>
-                    <span class="legend-value">@percentage.ToString("F1")%</span>
+        @if (totalSpending > 0)
+        {
+            <div class="pie-chart-container">
+                <div class="css-pie-chart" style="@GetPieChartStyle()"></div>
+                <div class="pie-center">
+                    <div class="pie-total">$@totalSpending.ToString("F0")</div>
+                    <div class="pie-label">Total</div>
                 </div>
-            }
-        </div>
+            </div>
+            
+            <div class="pie-legend">
+                @foreach (var category in GetSortedCategories())
+                {
+                    decimal percentage = (category.Value / totalSpending) * 100;
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: @GetCategoryColor(category.Key)"></span>
+                        <span class="legend-text">@GetCategoryIcon(category.Key) @category.Key</span>
+                        <span class="legend-value">$@category.Value.ToString("N0") (@percentage.ToString("F1")%)</span>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-chart">
+                <p>No expense data available for this period</p>
+            </div>
+        }
+    </div>
+    
+    <!-- Top Categories Card -->
+    <div class="chart-card">
+        <h3>Top Spending Categories</h3>
+        
+        @if (categorySpending.Any())
+        {
+            <div class="category-bars">
+                @foreach (var category in GetSortedCategories().Take(5))
+                {
+                    decimal percentage = totalSpending > 0 ? (category.Value / totalSpending) * 100 : 0;
+                    <div class="category-bar-item">
+                        <div class="category-bar-header">
+                            <span class="category-name">@GetCategoryIcon(category.Key) @category.Key</span>
+                            <span class="category-amount">$@category.Value.ToString("N2")</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" 
+                                 style="width: @percentage%; background: @GetCategoryColor(category.Key)">
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-chart">
+                <p>No categories to display</p>
+            </div>
+        }
     </div>
 </div>
-
 
 @code {
     private string timePeriod = "Monthly";
     private decimal totalSpending = 0;
     
-    private Dictionary<string, decimal> categorySpending = new()
-    {
-        { "Food", 450 },
-        { "Transport", 180 },
-        { "Shopping", 250 },
-        { "Entertainment", 120 },
-        { "Bills", 400 },
-        { "Healthcare", 80 },
-        { "Other", 50 }
-    };
+    private Dictionary<string, decimal> categorySpending = new();
     
     protected override void OnInitialized()
     {
-        totalSpending = categorySpending.Values.Sum();
+        LoadData();
+    }
+    
+    private void LoadData()
+    {
+        var startDate = GetStartDate(timePeriod);
+        var endDate = GetEndDate(timePeriod);
+        
+        // Get transactions for the period
+        var expenses = TransactionService.GetExpenses()
+            .Where(e => e.Date >= startDate && e.Date <= endDate)
+            .ToList();
+        
+        // Calculate totals
+        totalSpending = expenses.Sum(e => e.Amount);
+        
+        // Group expenses by category
+        categorySpending = expenses
+            .GroupBy(e => e.Category)
+            .ToDictionary(g => g.Key ?? "Other", g => g.Sum(e => e.Amount));
     }
     
     private void SetTimePeriod(string period)
     {
         timePeriod = period;
+        LoadData();
+    }
+    
+    private DateTime GetStartDate(string period)
+    {
+        return period switch
+        {
+            "Monthly" => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1),
+            "Yearly" => new DateTime(DateTime.Today.Year, 1, 1),
+            _ => DateTime.Today
+        };
+    }
+    
+    private DateTime GetEndDate(string period)
+    {
+        return period switch
+        {
+            "Monthly" => GetStartDate(period).AddMonths(1).AddSeconds(-1),
+            "Yearly" => GetStartDate(period).AddYears(1).AddSeconds(-1),
+            _ => DateTime.Today
+        };
     }
     
     private List<KeyValuePair<string, decimal>> GetSortedCategories()
@@ -77,7 +153,8 @@
     
     private string GetPieChartStyle()
     {
-        // Create conic gradient for pie chart
+        if (totalSpending == 0) return "background: #f0f0f0;";
+        
         var colors = new List<string>();
         decimal cumulative = 0;
         
@@ -102,7 +179,7 @@
             "Shopping" => "👕",
             "Entertainment" => "🎬",
             "Bills" => "💡",
-            "Healthcare" => "💊",
+            "Grocery" => "🥦",
             "Other" => "💰",
             _ => "📁"
         };
@@ -112,12 +189,12 @@
     {
         return category switch
         {
-            "Food" => "#FF6B6B",
+            "Food" => "#f59b42",
             "Transport" => "#4ECDC4",
             "Shopping" => "#FFE66D",
             "Entertainment" => "#A888B5",
-            "Bills" => "#95E1D3",
-            "Healthcare" => "#F38181",
+            "Bills" => "#f5425d",
+            "Grocery" => "#5c8257",
             "Other" => "#CCCCCC",
             _ => "#999999"
         };
@@ -128,8 +205,16 @@
     h2 {
         font-size: 28px;
         color: #8E6F9D;
-         margin-bottom: 30px;
+        margin-bottom: 30px;
     }
+    
+    h3 {
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 20px;
+    }
+    
     .time-period-tabs {
         display: flex;
         gap: 10px;
@@ -147,6 +232,10 @@
         transition: all 0.3s;
     }
     
+    .tab-button:hover {
+        background: #f0e6f5;
+    }
+    
     .tab-button.active {
         background: #A888B5;
         color: white;
@@ -154,12 +243,9 @@
     
     .analytics-container {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         gap: 30px;
         margin-bottom: 30px;
-        max-width: 600px;  /* Center the pie chart */
-        margin-left: auto;
-        margin-right: auto;
     }
     
     .chart-card {
@@ -169,17 +255,16 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
-    .chart-card.full-width {
-        grid-column: 1 / -1;
+    .empty-chart {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
     }
     
-
-    
-    /* CSS Pie Chart */
     .pie-chart-container {
         position: relative;
-        width: 300px;
-        height: 300px;
+        width: 280px;
+        height: 280px;
         margin: 0 auto 30px;
     }
     
@@ -196,8 +281,8 @@
         left: 50%;
         transform: translate(-50%, -50%);
         background: white;
-        width: 150px;
-        height: 150px;
+        width: 140px;
+        height: 140px;
         border-radius: 50%;
         display: flex;
         flex-direction: column;
@@ -207,20 +292,20 @@
     }
     
     .pie-total {
-        font-size: 32px;
+        font-size: 28px;
         font-weight: bold;
         color: #A888B5;
     }
     
     .pie-label {
-        font-size: 14px;
+        font-size: 13px;
         color: #666;
     }
     
     .pie-legend {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
     }
     
     .legend-item {
@@ -234,6 +319,7 @@
         width: 16px;
         height: 16px;
         border-radius: 3px;
+        flex-shrink: 0;
     }
     
     .legend-text {
@@ -243,5 +329,46 @@
     .legend-value {
         font-weight: 600;
         color: #666;
+    }
+    
+    .category-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .category-bar-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .category-bar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .category-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .category-amount {
+        font-weight: 700;
+        color: #666;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #f0f0f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        transition: width 0.3s;
     }
 </style>
