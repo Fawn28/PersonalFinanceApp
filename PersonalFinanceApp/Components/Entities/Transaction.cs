@@ -1,6 +1,6 @@
 namespace PersonalFinanceApp.Components.Entities;
 
-public abstract class Transaction
+public abstract class Transaction : ITransaction
 {
     public int Id { get; set; }
     public DateTime Date { get; set; }

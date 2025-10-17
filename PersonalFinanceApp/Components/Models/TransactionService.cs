@@ -7,26 +7,24 @@ public class TransactionService
 {
     private readonly TransactionRepo _repo;
     private readonly BudgetService _budgetService;
-    private readonly List<Transaction> _transactions;
+    private readonly List<ITransaction> _transactions;
 
     public TransactionService(TransactionRepo repo, BudgetService budgetService)
     {
         _repo = repo;
         _budgetService = budgetService;
-        _transactions = _repo.Load();
+        _transactions = _repo.Load().Cast<ITransaction>().ToList();
     }
     
-    public IEnumerable<Transaction> GetAll() => _transactions;
+    public IEnumerable<ITransaction> GetAll() => _transactions;
     
-    public void AddTransaction(Transaction transaction)
+    public void AddTransaction(ITransaction transaction)
     {
         transaction.Id = _transactions.Any() ? _transactions.Max(t => t.Id) + 1 : 1;
         _transactions.Add(transaction);
         _repo.Append(transaction);
         Console.WriteLine($"[DEBUG] Added {transaction.GetType().Name}: {transaction.Category}, {transaction.Amount}");
         _budgetService?.UpdateProgress(transaction);
-        // _transactions.Clear();
-        // _transactions.AddRange(_repo.Load());
     }
 
     public void DeleteTransaction(int transactionId)
