@@ -1,3 +1,5 @@
+using PersonalFinanceApp.Components.Data;
+
 namespace PersonalFinanceApp.Components.Entities;
 
 public abstract class Transaction : ITransaction

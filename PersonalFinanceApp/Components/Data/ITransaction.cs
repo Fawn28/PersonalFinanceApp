@@ -1,4 +1,4 @@
-namespace PersonalFinanceApp.Components.Entities;
+namespace PersonalFinanceApp.Components.Data;
 
 public interface ITransaction
 {
