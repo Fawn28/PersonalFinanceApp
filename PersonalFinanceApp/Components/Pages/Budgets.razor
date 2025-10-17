@@ -1,0 +1,543 @@
+﻿@page "/budget"
+@rendermode InteractiveServer
+@using PersonalFinanceApp.Components.Entities
+@using PersonalFinanceApp.Components.Models
+@inject BudgetService BudgetService
+@inject TransactionService TransactionService
+
+<PageTitle>Budget</PageTitle>
+
+<h2>@timePeriod Budget</h2>
+<div class="time-period-tabs">
+    <button class="tab-button @(timePeriod == "Weekly" ? "active" : "")" 
+            @onclick='() => SetTimePeriod("Weekly")'>
+        Weekly
+    </button>
+    <button class="tab-button @(timePeriod == "Monthly" ? "active" : "")" 
+            @onclick='() => SetTimePeriod("Monthly")'>
+        Monthly
+    </button>
+    <button class="tab-button @(timePeriod == "Yearly" ? "active" : "")" 
+            @onclick='() => SetTimePeriod("Yearly")'>
+        Yearly
+    </button>
+</div>
+
+<div class="period-info">
+    <span>📅 Showing budgets for: <strong>@GetPeriodDisplay()</strong></span>
+</div>
+
+<div class="budget-list">
+    @if (budgets.Any())
+    {
+        @foreach (var budget in budgets)
+        {
+            decimal spent = GetSpentForBudget(budget);
+            int percentage = budget.TargetAmount > 0 ? (int)((spent / budget.TargetAmount) * 100) : 0;
+            
+            <div class="budget-item">
+                <div class="budget-header">
+                    <h3>@GetCategoryIcon(budget.Name) @budget.Name</h3>
+                    <span class="budget-amount">$@spent.ToString("N2") / $@budget.TargetAmount.ToString("N2")</span>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill @(percentage > 100 ? "over-budget" : "")" 
+                         style="width: @Math.Min(percentage, 100)%">
+                    </div>
+                </div>
+                
+                <div class="budget-details">
+                    <span class="percentage-text @(percentage > 100 ? "over" : "")">@percentage% used</span>
+                    <span class="remaining-text">$@((budget.TargetAmount - spent).ToString("N2")) left</span>
+                </div>
+                
+                <div class="budget-input">
+                    <label>Set Budget: $</label>
+                    <input type="number" value="@budget.TargetAmount" 
+                           @onchange="@((e) => HandleBudgetChange(budget, e))" 
+                           step="10" min="0" />
+                    <button class="btn-delete" @onclick="() => DeleteBudget(budget)">🗑️</button>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="empty-state">
+            <p>No @timePeriod.ToLower() budgets yet. Add one below to get started! 💰</p>
+        </div>
+    }
+</div>
+
+<!-- Add New Budget Form -->
+<div class="add-budget-section">
+    <h3>Add New @timePeriod Budget</h3>
+    
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="status-message @statusClass">
+            @statusMessage
+        </div>
+    }
+    
+    <div class="add-budget-form">
+        <label>Category:</label>
+        <select @bind="newBudgetCategory">
+            <option value="">-- Select Category --</option>
+            <option value="Food">🍔 Food</option>
+            <option value="Transport">🚗 Transport</option>
+            <option value="Shopping">👕 Shopping</option>
+            <option value="Entertainment">🎬 Entertainment</option>
+            <option value="Bills">💡 Bills</option>
+            <option value="Grocery">🥦 Grocery</option>
+            <option value="Other">💰 Other</option>
+        </select>
+        
+        <label>Target Amount: $</label>
+        <input type="number" @bind="newBudgetAmount" step="10" min="0" placeholder="Enter amount" />
+        
+        <button class="btn-add" @onclick="AddNewBudget">Add @timePeriod Budget</button>
+    </div>
+</div>
+
+@code {
+    private string timePeriod = "Monthly";
+    private List<Budget> budgets = new();
+    
+    // New budget form
+    private string newBudgetCategory = "";
+    private decimal newBudgetAmount = 0;
+    
+    // Status messages
+    private string statusMessage = "";
+    private string statusClass = "";
+    
+    protected override void OnInitialized()
+    {
+        LoadBudgets();
+    }
+    
+    private decimal GetSpentForBudget(Budget budget)
+    {
+        return TransactionService.GetExpenses()
+            .Where(e => e.Date >= budget.StartDate && 
+                       e.Date <= budget.EndDate &&
+                       e.Category == budget.Name)
+            .Sum(e => e.Amount);
+    }
+    
+    private void LoadBudgets()
+    {
+        // Get the current period's start and end dates
+        var periodStart = GetStartDate(timePeriod);
+        var periodEnd = GetEndDate(timePeriod);
+        
+        // Only load budgets that match EXACTLY this period
+        budgets = BudgetService.GetAll()
+            .Where(b => 
+                b.StartDate.Date == periodStart.Date && 
+                b.EndDate.Date == periodEnd.Date
+            )
+            .ToList();
+        
+        StateHasChanged();
+    }
+    
+    private void SetTimePeriod(string period)
+    {
+        timePeriod = period;
+        LoadBudgets();
+    }
+    
+    private void HandleBudgetChange(Budget budget, ChangeEventArgs e)
+    {
+        if (e.Value != null && decimal.TryParse(e.Value.ToString(), out decimal newAmount))
+        {
+            budget.TargetAmount = newAmount;
+            BudgetService.AddBudget(budget);
+            ShowStatus("Budget updated!", "success");
+            StateHasChanged();
+        }
+    }
+    
+    private void DeleteBudget(Budget budget)
+    {
+        // Call the service to delete from file
+        BudgetService.DeleteBudget(budget.Id);
+        
+        // Reload budgets to reflect the deletion
+        LoadBudgets();
+        
+        ShowStatus($"{budget.Name} budget deleted", "success");
+    }
+    
+    private void AddNewBudget()
+    {
+        if (string.IsNullOrEmpty(newBudgetCategory))
+        {
+            ShowStatus("Please select a category", "error");
+            return;
+        }
+        
+        if (newBudgetAmount <= 0)
+        {
+            ShowStatus("Please enter a valid amount", "error");
+            return;
+        }
+        
+        // Check if budget already exists for this category in this period
+        if (budgets.Any(b => b.Name == newBudgetCategory))
+        {
+            ShowStatus($"A {newBudgetCategory} budget already exists for this {timePeriod.ToLower()} period", "error");
+            return;
+        }
+        
+        try
+        {
+            var budget = new Budget
+            {
+                Name = newBudgetCategory,
+                TargetAmount = newBudgetAmount,
+                CurrentAmount = 0,
+                StartDate = GetStartDate(timePeriod),
+                EndDate = GetEndDate(timePeriod)
+            };
+            
+            BudgetService.AddBudget(budget);
+            ShowStatus($"{newBudgetCategory} budget added successfully!", "success");
+            
+            // Clear form
+            newBudgetCategory = "";
+            newBudgetAmount = 0;
+            
+            // Reload
+            LoadBudgets();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error: {ex.Message}", "error");
+        }
+    }
+
+    private DateTime GetStartDate(string period)
+    {
+        return period switch
+        {
+            "Weekly" => DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek),
+            "Monthly" => new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1),
+            "Yearly" => new DateTime(DateTime.Today.Year, 1, 1),
+            _ => DateTime.Today
+        };
+    }
+    
+    private DateTime GetEndDate(string period)
+    {
+        return period switch
+        {
+            "Weekly" => GetStartDate(period).AddDays(6).Date.AddDays(1).AddSeconds(-1),
+            "Monthly" => GetStartDate(period).AddMonths(1).AddSeconds(-1),
+            "Yearly" => GetStartDate(period).AddYears(1).AddSeconds(-1),
+            _ => DateTime.Today
+        };
+    }
+    
+    private string GetPeriodDisplay()
+    {
+        var start = GetStartDate(timePeriod);
+        var end = GetEndDate(timePeriod);
+        
+        return timePeriod switch
+        {
+            "Weekly" => $"{start:MMM d} - {end:MMM d, yyyy}",
+            "Monthly" => $"{start:MMMM yyyy}",
+            "Yearly" => $"{start.Year}",
+            _ => ""
+        };
+    }
+    
+    private void ShowStatus(string message, string type)
+    {
+        statusMessage = message;
+        statusClass = type;
+        StateHasChanged();
+        
+        // Auto-clear after 3 seconds
+        Task.Delay(3000).ContinueWith(_ => {
+            statusMessage = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+    
+    private string GetCategoryIcon(string category)
+    {
+        return category switch
+        {
+            "Food" => "🍔",
+            "Transport" => "🚗",
+            "Shopping" => "👕",
+            "Entertainment" => "🎬",
+            "Bills" => "💡",
+            "Grocery" => "🥦",
+            "Other" => "💰",
+            _ => "📁"
+        };
+    }
+}
+
+<style>
+    h2 {
+        font-size: 28px;
+        color: #8E6F9D;
+        margin-bottom: 20px;
+    }
+    
+    .time-period-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .tab-button {
+        padding: 12px 30px;
+        border: 2px solid #A888B5;
+        background: white;
+        color: #A888B5;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .tab-button:hover {
+        background: #f0e6f5;
+    }
+    
+    .tab-button.active {
+        background: #A888B5;
+        color: white;
+    }
+    
+    .period-info {
+        background: #f8f4fb;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        border-left: 4px solid #A888B5;
+    }
+    
+    .period-info span {
+        color: #666;
+        font-size: 15px;
+    }
+    
+    .period-info strong {
+        color: #8E6F9D;
+    }
+    
+    .budget-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .budget-item {
+        background: white;
+        padding: 20px; 
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .budget-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .budget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .budget-header h3 {
+        margin: 0;
+        color: #333;
+        font-size: 18px;
+    }
+    
+    .budget-amount {
+        font-weight: 600;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 24px;
+        background: #f0f0f0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #A888B5, #8E6F9D);
+        transition: width 0.3s;
+    }
+    
+    .progress-fill.over-budget {
+        background: linear-gradient(90deg, #FF6B6B, #FF5252);
+    }
+    
+    .budget-details {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+    
+    .percentage-text {
+        font-weight: 600;
+        color: #8E6F9D;
+    }
+    
+    .percentage-text.over {
+        color: #FF5252;
+    }
+    
+    .remaining-text {
+        color: #666;
+    }
+    
+    .budget-input {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .budget-input label {
+        font-weight: 600;
+        color: #666;
+        white-space: nowrap;
+    }
+    
+    .budget-input input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    
+    .btn-delete {
+        background: #ff4444;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background 0.3s;
+    }
+    
+    .btn-delete:hover {
+        background: #cc0000;
+    }
+    
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .empty-state p {
+        font-size: 18px;
+        color: #999;
+        margin: 0;
+    }
+
+    .add-budget-section {
+        margin-top: 40px;
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .add-budget-section h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    
+    .status-message {
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        text-align: center;
+    }
+    
+    .status-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .add-budget-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-width: 400px;
+    }
+    
+    .add-budget-form label {
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .add-budget-form input,
+    .add-budget-form select {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+    }
+    
+    .add-budget-form input:focus,
+    .add-budget-form select:focus {
+        outline: none;
+        border-color: #A888B5;
+    }
+    
+    .btn-add {
+        background: #A888B5;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.3s;
+        font-size: 16px;
+    }
+    
+    .btn-add:hover {
+        background: #8E6F9D;
+    }
+</style>

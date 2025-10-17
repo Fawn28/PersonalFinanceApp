@@ -1,6 +1,6 @@
-using BlazorApp1.Components.Entities;
+using PersonalFinanceApp.Components.Entities;
 
-namespace BlazorApp1.Components.Data;
+namespace PersonalFinanceApp.Components.Data;
 
 public class TransactionRepo
 {
@@ -27,12 +27,12 @@ public class TransactionRepo
                 int id = int.Parse(parts[0]);
                 DateTime date = DateTime.Parse(parts[1]);
                 decimal amount = decimal.Parse(parts[2]);
-                string description = parts[3];
+                string category = parts[3];
                 string type = parts[4];
 
                 Transaction transaction = type.Equals("income", StringComparison.OrdinalIgnoreCase)
-                    ? new Income { Id = id, Date = date, Amount = amount, Description = description }
-                    : new Expense { Id = id, Date = date, Amount = amount, Description = description };
+                    ? new Income { Id = id, Date = date, Amount = amount, Category = category }
+                    : new Expense { Id = id, Date = date, Amount = amount, Category = category };
 
                 transactions.Add(transaction);
             }
@@ -55,11 +55,24 @@ public class TransactionRepo
             //     writer.WriteLine();
             // }
 
-            writer.WriteLine($"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Description},{transaction.Type}");
+            writer.WriteLine($"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Category},{transaction.Type}");
         }
 
-        Console.WriteLine($"Appended transaction {transaction.Id}: {transaction.Description}");
+        Console.WriteLine($"Appended transaction {transaction.Id}: {transaction.Category}");
     }
+
+    public void Save(List<Transaction> transactions)
+{
+    using (var writer = new StreamWriter(_filePath, false))
+    {
+        foreach (var transaction in transactions)
+        {
+            writer.WriteLine($"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Category},{transaction.Type}");
+        }
+    }
+    
+    Console.WriteLine($"Saved {transactions.Count} transactions to {_filePath}");
+}
 
     // private readonly string _filePath = "Components/Data/transactions.json";
     // private readonly JsonSerializerOptions _options;

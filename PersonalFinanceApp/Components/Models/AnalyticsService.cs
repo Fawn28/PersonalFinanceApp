@@ -1,5 +1,5 @@
 //using Microsoft.Data.Analysis;
-//namespace BlazorApp1.Components.Models;
+//namespace PersonalFinanceApp.Components.Models;
 
 //public class AnalyticsService
 //{

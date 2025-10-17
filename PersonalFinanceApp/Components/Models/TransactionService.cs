@@ -1,7 +1,7 @@
-using BlazorApp1.Components.Data;
-using BlazorApp1.Components.Entities;
+using PersonalFinanceApp.Components.Data;
+using PersonalFinanceApp.Components.Entities;
 
-namespace BlazorApp1.Components.Models;
+namespace PersonalFinanceApp.Components.Models;
 
 public class TransactionService
 {
@@ -20,14 +20,26 @@ public class TransactionService
     
     public void AddTransaction(Transaction transaction)
     {
-        transaction.Id = _transactions.Count + 1;
+        transaction.Id = _transactions.Any() ? _transactions.Max(t => t.Id) + 1 : 1;
         _transactions.Add(transaction);
         _repo.Append(transaction);
-        Console.WriteLine($"[DEBUG] Added {transaction.GetType().Name}: {transaction.Description}, {transaction.Amount}");
+        Console.WriteLine($"[DEBUG] Added {transaction.GetType().Name}: {transaction.Category}, {transaction.Amount}");
         _budgetService?.UpdateProgress(transaction);
         // _transactions.Clear();
         // _transactions.AddRange(_repo.Load());
     }
+
+    public void DeleteTransaction(int transactionId)
+{
+    var transactionToRemove = _transactions.FirstOrDefault(t => t.Id == transactionId);
+    
+    if (transactionToRemove != null)
+    {
+        _transactions.Remove(transactionToRemove);
+        _repo.Save(_transactions); // Save to file
+        Console.WriteLine($"[DEBUG] Deleted transaction {transactionId}");
+    }
+}
     
     public IEnumerable<Expense> GetExpenses() =>
         _transactions.OfType<Expense>();

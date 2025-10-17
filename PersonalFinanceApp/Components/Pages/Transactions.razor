@@ -1,0 +1,534 @@
+﻿@page "/transactions"
+@rendermode InteractiveServer
+@using PersonalFinanceApp.Components.Entities
+@using PersonalFinanceApp.Components.Models
+@inject TransactionService TransactionService
+
+<PageTitle>Transactions</PageTitle>
+
+<div class="transaction-type-tabs">
+    <button class="tab-button @(isExpense ? "active" : "")" @onclick="() => SetType(true)">
+        Expenses
+    </button>
+    <button class="tab-button @(isExpense ? "" : "active")" @onclick="() => SetType(false)">
+        Income
+    </button>
+</div>
+
+<div class="transaction-container">
+    <div class="transaction-form">
+        <h3>Add @(isExpense ? "Expense" : "Income")</h3>
+        
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="status-message @statusClass">
+                @statusMessage
+            </div>
+        }
+        
+        <label>Date:</label>
+        <input type="date" @bind="selectedDate" />
+        
+        <label>Category:</label>
+        <select @bind="category" class="form-select">
+            <option value="">-- Select Category --</option>
+            
+            @if (isExpense)
+            {
+                <option value="Food">🍔 Food & Dining</option>
+                <option value="Transport">🚗 Transportation</option>
+                <option value="Shopping">👕 Shopping</option>
+                <option value="Entertainment">🎬 Entertainment</option>
+                <option value="Bills">💡 Bills & Utilities</option>
+                <option value="Grocery">🥦 Grocery</option>
+                <option value="Other">💰 Other</option>
+            }
+            else
+            {
+                <option value="Salary">💼 Salary</option>
+                <option value="Freelance">💸 Freelance</option>
+                <option value="Investment">📈 Investment</option>
+                <option value="Gift">🎁 Gift</option>
+                <option value="Other">💰 Other</option>
+            }
+        </select>
+        
+        <label>Amount:</label>
+        <input type="number" @bind="amount" placeholder="0.00" step="0.01" />
+        
+        <button class="btn-add" @onclick="AddTransaction">Add Transaction</button>
+        
+        <!-- Summary Section -->
+        <div class="summary-box">
+            <div class="summary-item">
+                <span class="summary-label">Total Income:</span>
+                <span class="summary-value income">+$@TransactionService.GetTotalIncome().ToString("N2")</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Total Expenses:</span>
+                <span class="summary-value expense">-$@TransactionService.GetTotalExpenses().ToString("N2")</span>
+            </div>
+            <div class="summary-item balance">
+                <span class="summary-label">Balance:</span>
+                <span class="summary-value @(TransactionService.GetBalance() >= 0 ? "positive" : "negative")">
+                    $@TransactionService.GetBalance().ToString("N2")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="transaction-list">
+        <div class="list-header">
+            <h3>Recent Transactions</h3>
+            <span class="transaction-count">(@displayedTransactions.Count)</span>
+        </div>
+        
+        @if (displayedTransactions.Count == 0)
+        {
+            <p class="empty-message">No transactions yet. Add your first one!</p>
+        }
+        else
+        {
+            <div class="transactions-wrapper">
+                @foreach (var trans in displayedTransactions.OrderByDescending(t => t.Date).Take(20))
+                {
+                    <div class="transaction-item @(trans.Type.ToLower())">
+                        <div class="trans-info">
+                            <strong>@GetCategoryIcon(trans.Category) @trans.Category</strong>
+                            <small>@trans.Date.ToString("MMM d, yyyy")</small>
+                        </div>
+                        
+                        <div class="trans-actions">
+                            <div class="trans-amount">@(trans.Type == "Expense" ? "-" : "+")$@trans.Amount.ToString("N2")</div>
+                            <button class="btn-delete" @onclick="() => DeleteTransaction(trans.Id)">🗑️</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DateTime selectedDate = DateTime.Today;
+    private string category = "";
+    private decimal amount = 0;
+    private bool isExpense = true;
+    
+    private List<Transaction> allTransactions = new();
+    private List<Transaction> displayedTransactions = new();
+    
+    private string statusMessage = "";
+    private string statusClass = "";
+    
+    protected override void OnInitialized()
+    {
+        LoadTransactions();
+    }
+    
+    private void LoadTransactions()
+    {
+        allTransactions = TransactionService.GetAll().ToList();
+        FilterTransactions();
+    }
+    
+    private void SetType(bool expense)
+    {
+        isExpense = expense;
+        category = ""; // Reset category when switching types
+        FilterTransactions();
+    }
+    
+    private void FilterTransactions()
+    {
+        if (isExpense)
+        {
+            displayedTransactions = allTransactions.Where(t => t.Type == "Expense").ToList();
+        }
+        else
+        {
+            displayedTransactions = allTransactions.Where(t => t.Type == "Income").ToList();
+        }
+        
+        StateHasChanged();
+    }
+    
+    private void AddTransaction()
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            ShowStatus("Please select a category", "error");
+            return;
+        }
+        
+        if (amount <= 0)
+        {
+            ShowStatus("Please enter a valid amount", "error");
+            return;
+        }
+        
+        try
+        {
+            Transaction transaction = isExpense
+                ? new Expense
+                {
+                    Date = selectedDate,
+                    Category = category,
+                    Amount = amount
+                }
+                : new Income
+                {
+                    Date = selectedDate,
+                    Category = category,
+                    Amount = amount
+                };
+            
+            TransactionService.AddTransaction(transaction);
+            ShowStatus($"{(isExpense ? "Expense" : "Income")} added successfully!", "success");
+            
+            // Clear form
+            category = "";
+            amount = 0;
+            selectedDate = DateTime.Today;
+            
+            // Reload
+            LoadTransactions();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error: {ex.Message}", "error");
+        }
+    }
+    
+    private void DeleteTransaction(int transactionId)
+    {
+        try
+        {
+            TransactionService.DeleteTransaction(transactionId);
+            ShowStatus("Transaction deleted", "success");
+            LoadTransactions();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Error: {ex.Message}", "error");
+        }
+    }
+    
+    private void ShowStatus(string message, string type)
+    {
+        statusMessage = message;
+        statusClass = type;
+        StateHasChanged();
+        
+        Task.Delay(3000).ContinueWith(_ => {
+            statusMessage = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+    
+    private string GetCategoryIcon(string category)
+    {
+        return category switch
+        {
+            // Income
+            "Salary" => "💼",
+            "Freelance" => "💸",
+            "Investment" => "📈",
+            "Gift" => "🎁",
+            
+            // Expense
+            "Food" => "🍔",
+            "Transport" => "🚗",
+            "Shopping" => "👕",
+            "Entertainment" => "🎬",
+            "Bills" => "💡",
+            "Grocery" => "🥦",
+            
+            _ => "💰"
+        };
+    }
+}
+
+<style>
+    .transaction-type-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .tab-button {
+        padding: 12px 30px;
+        border: 2px solid #A888B5;
+        background: white;
+        color: #A888B5;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .tab-button:hover {
+        background: #f0e6f5;
+    }
+    
+    .tab-button.active {
+        background: #A888B5;
+        color: white;
+    }
+    
+    .transaction-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+    
+    .transaction-form {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-form h3 {
+        color: #A888B5;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+    
+    .status-message {
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-weight: 500;
+        text-align: center;
+        font-size: 14px;
+    }
+    
+    .status-message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .transaction-form label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .transaction-form input,
+    .transaction-form select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+    }
+    
+    .transaction-form input:focus,
+    .transaction-form select:focus {
+        outline: none;
+        border-color: #A888B5;
+    }
+    
+    .btn-add {
+        margin-top: 20px;
+        width: 100%;
+        padding: 12px;
+        background: #A888B5;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-add:hover {
+        background: #8E6F9D;
+    }
+    
+    .summary-box {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #f0f0f0;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+    }
+    
+    .summary-item.balance {
+        padding-top: 15px;
+        border-top: 2px solid #f0f0f0;
+        margin-top: 10px;
+    }
+    
+    .summary-label {
+        font-weight: 600;
+        color: #666;
+    }
+    
+    .summary-value {
+        font-size: 18px;
+        font-weight: 700;
+    }
+    
+    .summary-value.income {
+        color: #51CF66;
+    }
+    
+    .summary-value.expense {
+        color: #FF6B6B;
+    }
+    
+    .summary-value.positive {
+        color: #51CF66;
+    }
+    
+    .summary-value.negative {
+        color: #FF6B6B;
+    }
+    
+    .transaction-list {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .list-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .list-header h3 {
+        color: #A888B5;
+        margin: 0;
+    }
+    
+    .transaction-count {
+        color: #999;
+        font-size: 14px;
+    }
+    
+    .transactions-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    
+    .transactions-wrapper::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .transactions-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .transactions-wrapper::-webkit-scrollbar-thumb {
+        background: #A888B5;
+        border-radius: 10px;
+    }
+    
+    .empty-message {
+        color: #999;
+        text-align: center;
+        padding: 40px 20px;
+        margin: 0;
+    }
+    
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        border-radius: 8px;
+        background: #f9f9f9;
+        transition: all 0.2s;
+    }
+    
+    .transaction-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .transaction-item.expense {
+        border-left: 4px solid #FF6B6B;
+    }
+    
+    .transaction-item.income {
+        border-left: 4px solid #51CF66;
+    }
+    
+    .trans-info {
+        flex: 1;
+    }
+    
+    .trans-info strong {
+        display: block;
+        color: #333;
+        margin-bottom: 5px;
+        font-size: 15px;
+    }
+    
+    .trans-info small {
+        color: #666;
+        font-size: 13px;
+    }
+    
+    .trans-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .trans-amount {
+        font-size: 18px;
+        font-weight: bold;
+    }
+    
+    .transaction-item.expense .trans-amount {
+        color: #FF6B6B;
+    }
+    
+    .transaction-item.income .trans-amount {
+        color: #51CF66;
+    }
+    
+    .btn-delete {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.3s;
+        padding: 5px;
+    }
+    
+    .btn-delete:hover {
+        opacity: 1;
+    }
+    
+
+</style>
