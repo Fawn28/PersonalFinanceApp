@@ -2,7 +2,7 @@ using PersonalFinanceApp.Components.Entities;
 
 namespace PersonalFinanceApp.Components.Data;
 
-public class BudgetRepo
+public class BudgetRepo : IRepository<Budget>
 {
     private readonly string _filePath = "Components/Data/budgets.txt";
 

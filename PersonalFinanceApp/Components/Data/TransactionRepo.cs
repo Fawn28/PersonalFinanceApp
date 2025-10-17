@@ -2,13 +2,13 @@ using PersonalFinanceApp.Components.Entities;
 
 namespace PersonalFinanceApp.Components.Data;
 
-public class TransactionRepo
+public class TransactionRepo : IRepository<ITransaction>
 {
     private readonly string _filePath = "Components/Data/transactions.txt";
 
-    public List<Transaction> Load()
+    public List<ITransaction> Load()
     {
-        var transactions = new List<Transaction>();
+        var transactions = new List<ITransaction>();
 
         if (!File.Exists(_filePath))
             return transactions;
