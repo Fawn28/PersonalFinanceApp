@@ -5,10 +5,10 @@ namespace PersonalFinanceApp.Components.Models;
 
 public class BudgetService
 {
-    private readonly BudgetRepo _repo;
+    private readonly IRepository<Budget> _repo;
     private readonly List<Budget> _budgets;
 
-    public BudgetService(BudgetRepo repo)
+    public BudgetService(IRepository<Budget> repo)
     {
         _repo = repo;
         _budgets = _repo.Load();

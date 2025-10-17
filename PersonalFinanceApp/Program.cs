@@ -8,13 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<TransactionRepo>();
-builder.Services.AddSingleton<TransactionService>();
+builder.Services.AddScoped<IRepository<ITransaction>, TransactionRepo>();
+builder.Services.AddScoped<IRepository<Budget>, BudgetRepo>();
 
-builder.Services.AddSingleton<BudgetRepo>();
-builder.Services.AddSingleton<BudgetService>();
-
-//builder.Services.AddSingleton<AnalyticsService>();
+builder.Services.AddScoped<TransactionService>();
+builder.Services.AddScoped<BudgetService>();
 
 var app = builder.Build();
 

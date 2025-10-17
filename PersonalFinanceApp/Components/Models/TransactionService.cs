@@ -5,15 +5,15 @@ namespace PersonalFinanceApp.Components.Models;
 
 public class TransactionService
 {
-    private readonly TransactionRepo _repo;
+    private readonly IRepository<ITransaction> _repo;
     private readonly BudgetService _budgetService;
     private readonly List<ITransaction> _transactions;
 
-    public TransactionService(TransactionRepo repo, BudgetService budgetService)
+    public TransactionService(IRepository<ITransaction> repo, BudgetService budgetService)
     {
         _repo = repo;
         _budgetService = budgetService;
-        _transactions = _repo.Load().Cast<ITransaction>().ToList();
+        _transactions = _repo.Load();
     }
     
     public IEnumerable<ITransaction> GetAll() => _transactions;
@@ -34,7 +34,7 @@ public class TransactionService
     if (transactionToRemove != null)
     {
         _transactions.Remove(transactionToRemove);
-        _repo.Save(_transactions); // Save to file
+        _repo.Save(_transactions); 
         Console.WriteLine($"[DEBUG] Deleted transaction {transactionId}");
     }
 }

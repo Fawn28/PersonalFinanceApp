@@ -17,20 +17,20 @@ public class TransactionRepo : IRepository<ITransaction>
 
         foreach (var line in lines)
         {
-            var parts = line.Split(',');
+            var fields = line.Split(',');
 
-            if (parts.Length < 5)
+            if (fields.Length < 5)
                 continue;
 
             try
             {
-                int id = int.Parse(parts[0]);
-                DateTime date = DateTime.Parse(parts[1]);
-                decimal amount = decimal.Parse(parts[2]);
-                string category = parts[3];
-                string type = parts[4];
+                int id = int.Parse(fields[0]);
+                DateTime date = DateTime.Parse(fields[1]);
+                decimal amount = decimal.Parse(fields[2]);
+                string category = fields[3];
+                string type = fields[4];
 
-                Transaction transaction = type.Equals("income", StringComparison.OrdinalIgnoreCase)
+                ITransaction transaction = type.Equals("income", StringComparison.OrdinalIgnoreCase)
                     ? new Income { Id = id, Date = date, Amount = amount, Category = category }
                     : new Expense { Id = id, Date = date, Amount = amount, Category = category };
 
