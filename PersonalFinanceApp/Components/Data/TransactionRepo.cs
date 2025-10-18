@@ -2,10 +2,12 @@ using PersonalFinanceApp.Components.Entities;
 
 namespace PersonalFinanceApp.Components.Data;
 
+// Repository for handling transaction data persistence using a text file
 public class TransactionRepo : IRepository<ITransaction>
 {
     private readonly string _filePath = "Components/Data/transactions.txt";
 
+    // Loads all transactions from the file storage
     public List<ITransaction> Load()
     {
         var transactions = new List<ITransaction>();
@@ -30,6 +32,7 @@ public class TransactionRepo : IRepository<ITransaction>
                 string category = fields[3];
                 string type = fields[4];
 
+                // Create appropriate transaction type (Income or Expense) based on the type field
                 ITransaction transaction = type.Equals("income", StringComparison.OrdinalIgnoreCase)
                     ? new Income { Id = id, Date = date, Amount = amount, Category = category }
                     : new Expense { Id = id, Date = date, Amount = amount, Category = category };
@@ -46,6 +49,7 @@ public class TransactionRepo : IRepository<ITransaction>
         return transactions;
     }
 
+    // Adds a single transaction to the end of the file
     public void Append(ITransaction transaction)
     {
         using (var writer = new StreamWriter(_filePath, append: true))
@@ -57,6 +61,7 @@ public class TransactionRepo : IRepository<ITransaction>
         Console.WriteLine($"Appended transaction {transaction.Id}: {transaction.Category}");
     }
 
+    // Overwrites the file with a complete list of transactions
     public void Save(List<ITransaction> transactions)
     {
         using (var writer = new StreamWriter(_filePath, false))

@@ -3,6 +3,7 @@ using PersonalFinanceApp.Components.Entities;
 
 namespace PersonalFinanceApp.Components.Models;
 
+// Service that manages transaction operations and provides financial calculations
 public class TransactionService
 {
     private readonly IRepository<ITransaction> _repo;
@@ -18,6 +19,7 @@ public class TransactionService
     
     public IEnumerable<ITransaction> GetAll() => _transactions;
     
+    // Adds a new transaction, assigns an ID, persists it, and updates related budgets
     public void AddTransaction(ITransaction transaction)
     {
         transaction.Id = _transactions.Any() ? _transactions.Max(t => t.Id) + 1 : 1;
@@ -51,6 +53,7 @@ public class TransactionService
     public decimal GetTotalIncome() =>
         _transactions.OfType<Income>().Sum(i => i.Amount);
     
+    // Calculates the current balance by subtracting total expenses from total income
     public decimal GetBalance() =>
         GetTotalIncome() - GetTotalExpenses();
 }

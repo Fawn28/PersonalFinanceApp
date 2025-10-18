@@ -1,4 +1,4 @@
-﻿@page "/transactions"
+@page "/transactions"
 @rendermode InteractiveServer
 @using PersonalFinanceApp.Components.Data
 @using PersonalFinanceApp.Components.Entities
@@ -124,24 +124,28 @@
     
     protected override void OnInitialized()
     {
+        // Initializes the component by loading all transactions
         LoadTransactions();
     }
     
     private void LoadTransactions()
     {
+        // Retrieves all transactions and filters them based on current view type
         allTransactions = TransactionService.GetAll().ToList();
         FilterTransactions();
     }
     
     private void SetType(bool expense)
     {
+        // Toggles between expense and income views and resets the category selection
         isExpense = expense;
-        category = ""; // Reset category when switching types
+        category = "";
         FilterTransactions();
     }
     
     private void FilterTransactions()
     {
+        // Filters the transaction list to show only expenses or income based on current view
         if (isExpense)
         {
             displayedTransactions = allTransactions.Where(t => t.Type == "Expense").ToList();
@@ -170,6 +174,7 @@
         
         try
         {
+            // Creates and saves a new transaction based on form inputs and current transaction type
             ITransaction transaction = isExpense
                 ? new Expense
                 {
@@ -187,12 +192,10 @@
             TransactionService.AddTransaction(transaction);
             ShowStatus($"{(isExpense ? "Expense" : "Income")} added successfully!", "success");
             
-            // Clear form
             category = "";
             amount = 0;
             selectedDate = DateTime.Today;
             
-            // Reload
             LoadTransactions();
         }
         catch (Exception ex)
@@ -203,6 +206,7 @@
     
     private void DeleteTransaction(int transactionId)
     {
+        // Removes a transaction by its ID and refreshes the transaction list
         try
         {
             TransactionService.DeleteTransaction(transactionId);
@@ -217,6 +221,7 @@
     
     private void ShowStatus(string message, string type)
     {
+        // Displays a temporary status message that automatically disappears after 3 seconds
         statusMessage = message;
         statusClass = type;
         StateHasChanged();
@@ -229,15 +234,14 @@
     
     private string GetCategoryIcon(string category)
     {
+        // Returns an appropriate emoji icon for each transaction category
         return category switch
         {
-            // Income
             "Salary" => "💼",
             "Freelance" => "💸",
             "Investment" => "📈",
             "Gift" => "🎁",
             
-            // Expense
             "Food" => "🍔",
             "Transport" => "🚗",
             "Shopping" => "👕",

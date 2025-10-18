@@ -89,7 +89,9 @@
 </div>
 
 @code {
+    // Stores the current view mode (Monthly/Yearly) and controls the time range for analytics
     private string timePeriod = "Monthly";
+    
     private decimal totalSpending = 0;
     
     private Dictionary<string, decimal> categorySpending = new();
@@ -99,20 +101,18 @@
         LoadData();
     }
     
+    // Core data loading method that fetches expenses for the selected period and calculates spending by category
     private void LoadData()
     {
         var startDate = GetStartDate(timePeriod);
         var endDate = GetEndDate(timePeriod);
         
-        // Get transactions for the period
         var expenses = TransactionService.GetExpenses()
             .Where(e => e.Date >= startDate && e.Date <= endDate)
             .ToList();
         
-        // Calculate totals
         totalSpending = expenses.Sum(e => e.Amount);
         
-        // Group expenses by category
         categorySpending = expenses
             .GroupBy(e => e.Category)
             .ToDictionary(g => g.Key ?? "Other", g => g.Sum(e => e.Amount));
@@ -124,6 +124,7 @@
         LoadData();
     }
     
+    // Helper method that determines the start date based on selected time period
     private DateTime GetStartDate(string period)
     {
         return period switch
@@ -151,6 +152,7 @@
             .ToList();
     }
     
+    // Generates the CSS for the pie chart visualization using conic-gradient based on spending percentages
     private string GetPieChartStyle()
     {
         if (totalSpending == 0) return "background: #f0f0f0;";
@@ -170,6 +172,7 @@
         return $"background: conic-gradient({string.Join(", ", colors)});";
     }
     
+    // Maps category names to emoji icons for improved visual recognition in the UI
     private string GetCategoryIcon(string category)
     {
         return category switch
@@ -181,22 +184,23 @@
             "Bills" => "💡",
             "Grocery" => "🥦",
             "Other" => "💰",
-            _ => "📁"
+            _ => "📁"  // Default icon for unknown categories
         };
     }
     
+    // Provides consistent color mapping for categories across all visualizations
     private string GetCategoryColor(string category)
     {
         return category switch
         {
-            "Food" => "#f59b42",
-            "Transport" => "#4ECDC4",
-            "Shopping" => "#FFE66D",
-            "Entertainment" => "#A888B5",
-            "Bills" => "#f5425d",
-            "Grocery" => "#5c8257",
-            "Other" => "#CCCCCC",
-            _ => "#999999"
+            "Food" => "#f59b42",        
+            "Transport" => "#4ECDC4",   
+            "Shopping" => "#FFE66D",    
+            "Entertainment" => "#A888B5", 
+            "Bills" => "#f5425d",       
+            "Grocery" => "#5c8257",     
+            "Other" => "#CCCCCC",       
+            _ => "#999999"              // Gray (default for unknown categories)
         };
     }
 }
