@@ -1,5 +1,6 @@
 ﻿@page "/transactions"
 @rendermode InteractiveServer
+@using PersonalFinanceApp.Components.Data
 @using PersonalFinanceApp.Components.Entities
 @using PersonalFinanceApp.Components.Models
 @inject TransactionService TransactionService
@@ -115,8 +116,8 @@
     private decimal amount = 0;
     private bool isExpense = true;
     
-    private List<Transaction> allTransactions = new();
-    private List<Transaction> displayedTransactions = new();
+    private List<ITransaction> allTransactions = new();
+    private List<ITransaction> displayedTransactions = new();
     
     private string statusMessage = "";
     private string statusClass = "";
@@ -169,7 +170,7 @@
         
         try
         {
-            Transaction transaction = isExpense
+            ITransaction transaction = isExpense
                 ? new Expense
                 {
                     Date = selectedDate,

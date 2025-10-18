@@ -5,10 +5,10 @@ namespace PersonalFinanceApp.Components.Models;
 
 public class BudgetService
 {
-    private readonly BudgetRepo _repo;
+    private readonly IRepository<Budget> _repo;
     private readonly List<Budget> _budgets;
 
-    public BudgetService(BudgetRepo repo)
+    public BudgetService(IRepository<Budget> repo)
     {
         _repo = repo;
         _budgets = _repo.Load();
@@ -51,17 +51,17 @@ public class BudgetService
         }
     }
     
-    public void UpdateProgress(Transaction transaction)
+    public void UpdateProgress(ITransaction transaction)
     {
         foreach (var budget in _budgets)
         {
             if (transaction.Date >= budget.StartDate && transaction.Date <= budget.EndDate)
             {
-                if (transaction is Expense)
+                if (transaction.Type == "Expense")
                 {
                     budget.CurrentAmount -= transaction.Amount;
                 }
-                else if (transaction is Income)
+                else if (transaction.Type == "Income")
                 {
                     budget.CurrentAmount += transaction.Amount;
                 }

@@ -2,7 +2,7 @@ using PersonalFinanceApp.Components.Entities;
 
 namespace PersonalFinanceApp.Components.Data;
 
-public class BudgetRepo
+public class BudgetRepo : IRepository<Budget>
 {
     private readonly string _filePath = "Components/Data/budgets.txt";
 
@@ -16,15 +16,15 @@ public class BudgetRepo
 
         foreach (var line in lines)
         {
-            var parts = line.Split(',');
+            var fields = line.Split(',');
             budgets.Add(new Budget
             {
-                Id = int.Parse(parts[0]),
-                Name = parts[1],
-                TargetAmount = decimal.Parse(parts[2]),
-                CurrentAmount = decimal.Parse(parts[3]),
-                StartDate = DateTime.Parse(parts[4]),
-                EndDate = DateTime.Parse(parts[5])
+                Id = int.Parse(fields[0]),
+                Name = fields[1],
+                TargetAmount = decimal.Parse(fields[2]),
+                CurrentAmount = decimal.Parse(fields[3]),
+                StartDate = DateTime.Parse(fields[4]),
+                EndDate = DateTime.Parse(fields[5])
             });
         }
 

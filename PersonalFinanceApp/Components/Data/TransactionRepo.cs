@@ -2,13 +2,13 @@ using PersonalFinanceApp.Components.Entities;
 
 namespace PersonalFinanceApp.Components.Data;
 
-public class TransactionRepo
+public class TransactionRepo : IRepository<ITransaction>
 {
     private readonly string _filePath = "Components/Data/transactions.txt";
 
-    public List<Transaction> Load()
+    public List<ITransaction> Load()
     {
-        var transactions = new List<Transaction>();
+        var transactions = new List<ITransaction>();
 
         if (!File.Exists(_filePath))
             return transactions;
@@ -17,20 +17,20 @@ public class TransactionRepo
 
         foreach (var line in lines)
         {
-            var parts = line.Split(',');
+            var fields = line.Split(',');
 
-            if (parts.Length < 5)
+            if (fields.Length < 5)
                 continue;
 
             try
             {
-                int id = int.Parse(parts[0]);
-                DateTime date = DateTime.Parse(parts[1]);
-                decimal amount = decimal.Parse(parts[2]);
-                string category = parts[3];
-                string type = parts[4];
+                int id = int.Parse(fields[0]);
+                DateTime date = DateTime.Parse(fields[1]);
+                decimal amount = decimal.Parse(fields[2]);
+                string category = fields[3];
+                string type = fields[4];
 
-                Transaction transaction = type.Equals("income", StringComparison.OrdinalIgnoreCase)
+                ITransaction transaction = type.Equals("income", StringComparison.OrdinalIgnoreCase)
                     ? new Income { Id = id, Date = date, Amount = amount, Category = category }
                     : new Expense { Id = id, Date = date, Amount = amount, Category = category };
 
@@ -46,91 +46,29 @@ public class TransactionRepo
         return transactions;
     }
 
-    public void Append(Transaction transaction)
+    public void Append(ITransaction transaction)
     {
         using (var writer = new StreamWriter(_filePath, append: true))
         {
-            // if (new FileInfo(_filePath).Length > 0)
-            // {
-            //     writer.WriteLine();
-            // }
-
-            writer.WriteLine($"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Category},{transaction.Type}");
+            writer.WriteLine(
+                $"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Category},{transaction.Type}");
         }
 
         Console.WriteLine($"Appended transaction {transaction.Id}: {transaction.Category}");
     }
 
-    public void Save(List<Transaction> transactions)
-{
-    using (var writer = new StreamWriter(_filePath, false))
+    public void Save(List<ITransaction> transactions)
     {
-        foreach (var transaction in transactions)
+        using (var writer = new StreamWriter(_filePath, false))
         {
-            writer.WriteLine($"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Category},{transaction.Type}");
+            foreach (var transaction in transactions)
+            {
+                writer.WriteLine(
+                    $"{transaction.Id},{transaction.Date:o},{transaction.Amount},{transaction.Category},{transaction.Type}");
+            }
         }
-    }
-    
-    Console.WriteLine($"Saved {transactions.Count} transactions to {_filePath}");
-}
 
-    // private readonly string _filePath = "Components/Data/transactions.json";
-    // private readonly JsonSerializerOptions _options;
-    //
-    // public TransactionRepo()
-    // {
-    //     _options = new JsonSerializerOptions
-    //     {
-    //         WriteIndented = true,
-    //         Converters = { new TransactionJsonConverter() } 
-    //     };
-    // }
-    //
-    // public List<Transaction> Load()
-    // {
-    //     try
-    //     {
-    //         Console.WriteLine($"[DEBUG] Loading transactions from: {_filePath}");
-    //
-    //         if (!File.Exists(_filePath))
-    //         {
-    //             Console.WriteLine("[DEBUG] File does not exist. Returning empty list.");
-    //             return new List<Transaction>();
-    //         }
-    //
-    //         var json = File.ReadAllText(_filePath);
-    //         Console.WriteLine($"[DEBUG] File content:\n{json}");
-    //
-    //         var list = JsonSerializer.Deserialize<List<Transaction>>(json, _options)
-    //                    ?? new List<Transaction>();
-    //
-    //         Console.WriteLine($"[DEBUG] Loaded {list.Count} transactions.");
-    //         return list;
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"[ERROR] Failed to load transactions: {ex.Message}");
-    //         return new List<Transaction>();
-    //     }
-    // }
-    // public void Append(Transaction transaction)
-    // {
-    //     var json = JsonSerializer.Serialize(transaction, _options);
-    //     File.AppendAllText(_filePath, json + Environment.NewLine);
-    //     Console.WriteLine($"[DEBUG] Appended {transaction.Description}");
-    // }
-    // public void Save(List<Transaction> transactions)
-    // {
-    //     try
-    //     {
-    //         var json = JsonSerializer.Serialize(transactions, _options);
-    //         File.WriteAllText(_filePath, json);
-    //         Console.WriteLine($"[DEBUG] Saved {transactions.Count} transactions to: {_filePath}");
-    //         Console.WriteLine($"[DEBUG] File content:\n{json}");
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"[ERROR] Failed to save transactions: {ex.Message}");
-    //     }
-    // }
+        Console.WriteLine($"Saved {transactions.Count} transactions to {_filePath}");
+    }
 }
+    
