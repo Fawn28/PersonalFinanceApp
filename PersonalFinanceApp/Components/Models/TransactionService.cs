@@ -30,22 +30,19 @@ public class TransactionService
     }
 
     public void DeleteTransaction(int transactionId)
-{
-    var transactionToRemove = _transactions.FirstOrDefault(t => t.Id == transactionId);
-    
-    if (transactionToRemove != null)
     {
-        _transactions.Remove(transactionToRemove);
-        _repo.Save(_transactions); 
-        Console.WriteLine($"[DEBUG] Deleted transaction {transactionId}");
+        var transactionToRemove = _transactions.FirstOrDefault(t => t.Id == transactionId);
+        
+        if (transactionToRemove != null)
+        {
+            _transactions.Remove(transactionToRemove);
+            _repo.Save(_transactions); 
+            Console.WriteLine($"[DEBUG] Deleted transaction {transactionId}");
+        }
     }
-}
     
     public IEnumerable<Expense> GetExpenses() =>
         _transactions.OfType<Expense>();
-    
-    public IEnumerable<Income> GetIncome() =>
-        _transactions.OfType<Income>();
     
     public decimal GetTotalExpenses() =>
         _transactions.OfType<Expense>().Sum(e => e.Amount);
