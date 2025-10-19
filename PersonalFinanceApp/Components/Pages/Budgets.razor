@@ -1,4 +1,4 @@
-﻿@page "/budget"
+@page "/budget"
 @rendermode InteractiveServer
 @using PersonalFinanceApp.Components.Entities
 @using PersonalFinanceApp.Components.Models
@@ -105,19 +105,19 @@
     private string timePeriod = "Monthly";
     private List<Budget> budgets = new();
     
-    // New budget form
     private string newBudgetCategory = "";
     private decimal newBudgetAmount = 0;
     
-    // Status messages
     private string statusMessage = "";
     private string statusClass = "";
     
+    // Initializes the component by loading budgets for the default time period
     protected override void OnInitialized()
     {
         LoadBudgets();
     }
     
+    // Calculates the actual amount spent for a specific budget by filtering transactions
     private decimal GetSpentForBudget(Budget budget)
     {
         return TransactionService.GetExpenses()
@@ -127,13 +127,12 @@
             .Sum(e => e.Amount);
     }
     
+    // Retrieves budgets that exactly match the current time period's date range
     private void LoadBudgets()
     {
-        // Get the current period's start and end dates
         var periodStart = GetStartDate(timePeriod);
         var periodEnd = GetEndDate(timePeriod);
         
-        // Only load budgets that match EXACTLY this period
         budgets = BudgetService.GetAll()
             .Where(b => 
                 b.StartDate.Date == periodStart.Date && 
@@ -144,12 +143,14 @@
         StateHasChanged();
     }
     
+    // Updates the time period selection and refreshes the budget list
     private void SetTimePeriod(string period)
     {
         timePeriod = period;
         LoadBudgets();
     }
     
+    // Processes budget amount changes from the UI and persists them
     private void HandleBudgetChange(Budget budget, ChangeEventArgs e)
     {
         if (e.Value != null && decimal.TryParse(e.Value.ToString(), out decimal newAmount))
@@ -161,17 +162,15 @@
         }
     }
     
+    // Removes a budget from the system and updates the UI
     private void DeleteBudget(Budget budget)
     {
-        // Call the service to delete from file
         BudgetService.DeleteBudget(budget.Id);
-        
-        // Reload budgets to reflect the deletion
         LoadBudgets();
-        
         ShowStatus($"{budget.Name} budget deleted", "success");
     }
     
+    // Creates a new budget after validating user inputs
     private void AddNewBudget()
     {
         if (string.IsNullOrEmpty(newBudgetCategory))
@@ -186,7 +185,6 @@
             return;
         }
         
-        // Check if budget already exists for this category in this period
         if (budgets.Any(b => b.Name == newBudgetCategory))
         {
             ShowStatus($"A {newBudgetCategory} budget already exists for this {timePeriod.ToLower()} period", "error");
@@ -207,11 +205,9 @@
             BudgetService.AddBudget(budget);
             ShowStatus($"{newBudgetCategory} budget added successfully!", "success");
             
-            // Clear form
             newBudgetCategory = "";
             newBudgetAmount = 0;
             
-            // Reload
             LoadBudgets();
         }
         catch (Exception ex)
@@ -220,6 +216,7 @@
         }
     }
 
+    // Determines the start date based on the selected time period
     private DateTime GetStartDate(string period)
     {
         return period switch
@@ -231,6 +228,7 @@
         };
     }
     
+    // Calculates the end date for the selected time period
     private DateTime GetEndDate(string period)
     {
         return period switch
@@ -242,6 +240,7 @@
         };
     }
     
+    // Formats the current time period into a human-readable string
     private string GetPeriodDisplay()
     {
         var start = GetStartDate(timePeriod);
@@ -256,19 +255,20 @@
         };
     }
     
+    // Displays a temporary status message that automatically clears after 3 seconds
     private void ShowStatus(string message, string type)
     {
         statusMessage = message;
         statusClass = type;
         StateHasChanged();
         
-        // Auto-clear after 3 seconds
         Task.Delay(3000).ContinueWith(_ => {
             statusMessage = "";
             InvokeAsync(StateHasChanged);
         });
     }
     
+    // Returns an emoji icon for the given category to enhance visual recognition
     private string GetCategoryIcon(string category)
     {
         return category switch

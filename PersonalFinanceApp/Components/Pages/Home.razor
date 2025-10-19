@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @page "/home"
 @rendermode InteractiveServer
 @using PersonalFinanceApp.Components.Entities
@@ -56,6 +56,7 @@
         budgetRemaining = totalBudget - monthlySpending;
     }
     
+    // Helper method to calculate total spending for the current month
     private decimal CalculateMonthlySpending()
     {
         var thisMonth = DateTime.Now.Month;

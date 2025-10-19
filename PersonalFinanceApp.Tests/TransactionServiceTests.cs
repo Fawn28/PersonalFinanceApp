@@ -1,17 +1,19 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using PersonalFinanceApp.Components.Entities;
 using PersonalFinanceApp.Components.Models;
 using PersonalFinanceApp.Components.Data;
 
 namespace PersonalFinanceApp.Tests;
 
+// This test class focuses on verifying the TransactionService functionality
 [TestFixture]
 public class TransactionServiceTests
 {
     [Test]
     public void GetBalance_CalculatesCorrectly()
     {
-        // Arrange
+        // Arrange - Set up our test environment with the necessary services
+        // We're creating fresh instances of our repos and services for isolated testing
         var transactionRepo = new TransactionRepo();
         var budgetRepo = new BudgetRepo();
         var budgetService = new BudgetService(budgetRepo);
@@ -20,6 +22,8 @@ public class TransactionServiceTests
         // Create the necessary directories if they don't exist
         Directory.CreateDirectory("Components/Data");
 
+        // Create a sample income transaction representing a salary payment
+        // We'll use this to test our balance calculation
         var income = new Income
         {
             Amount = 1000,
@@ -51,6 +55,8 @@ public class TransactionServiceTests
         {
             File.Delete("Components/Data/transactions.txt");
         }
+        
+        // Remove the budgets file if it exists
         if (File.Exists("Components/Data/budgets.txt"))
         {
             File.Delete("Components/Data/budgets.txt");
